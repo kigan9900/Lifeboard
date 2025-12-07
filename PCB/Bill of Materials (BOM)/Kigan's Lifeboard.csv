@@ -1,6 +1,0 @@
-"Id";"Designator";"Footprint";"Quantity";"Designation";"Supplier and ref";
-1;"SW3,SW2,SW1,SW4";"SW_Cherry_MX_1.00u_PCB";4;"SW_Push";;;
-2;"SW7,SW5";"RotaryEncoder_Alps_EC12E-Switch_Vertical_H20mm";2;"RotaryEncoder";;;
-3;"J1";"OLED_128x32";1;"OLED_128x32";;;
-4;"R2,R1";"R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal";2;"4.7 kohm";;;
-5;"U1";"XIAO-RP2040-DIP";1;"XIAO-RP2040-SMD";;;
