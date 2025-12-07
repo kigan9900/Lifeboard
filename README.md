@@ -90,6 +90,7 @@ Think of it as a **streamlined, one-click productivity booster**.
 | 3  | J1                    | OLED_128x32                                 | 1        | OLED_128x32      |                |
 | 4  | R2, R1                | R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal | 2        | 4.7 kΩ           |                |
 | 5  | U1                    | XIAO-RP2040-DIP                             | 1        | XIAO-RP2040-SMD  |                |
+| 6  | Screws                | M5x15mm                                     | 4        | Mounting Screws  |                |
 
 ---
 
