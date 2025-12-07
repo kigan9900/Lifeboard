@@ -1,8 +1,8 @@
 # Lifeboard :)
 
-[![Downloads](https://img.shields.io/github/downloads/{user}/{repo}/total)](https://github.com/{user}/{repo}/releases)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/{user}/{repo}/releases)
-[![Last Commit](https://img.shields.io/github/last-commit/{user}/{repo})](https://github.com/{user}/{repo}/commits)
+[![Downloads](https://img.shields.io/github/downloads/kigan9900/Lifeboard/total)](https://github.com/kigan9900/Lifeboard/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/kigan9900/Lifeboard/releases)
+[![Last Commit](https://img.shields.io/github/last-commit/kigan9900/Lifeboard)](https://github.com/kigan9900/Lifeboard/commits)
 
 A **Micropad** with ease-of-life shortcuts that, with the click of a button, instantly opens apps and websites like **Google Classroom**, **YouTube**, and more. Save time, reduce procrastination, and streamline your workflow with a single press.
 
