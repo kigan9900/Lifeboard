@@ -41,16 +41,24 @@ Turn the encoder to switch presets. Press a button to launch whatever you assign
 
 ## PCB Layout
 
-<img width="800" src="https://github.com/user-attachments/assets/9409af7d-17f9-4205-8673-4005c1dc2197" />
+<strong>PCB Design:</strong>
+
+<img width="1487" height="648" alt="image" src="https://github.com/user-attachments/assets/e817c978-3194-49e1-9585-61a4f7382682" />
+
+<strong>3D PCB Model:</strong>
+
+<img width="688" height="448" alt="image" src="https://github.com/user-attachments/assets/e87b5ced-050a-43af-90f7-c2e93f0a26cd" />
 
 ---
 
 ## 3D Prints
 
-**Top view:**  
+**Top view:** 
+
 <img width="2062" height="1050" alt="image" src="https://github.com/user-attachments/assets/e21452da-9c42-48d9-a631-cb7f9ad7d82b" />
 
 **Bottom view:**  
+
 <img width="800" src="https://github.com/user-attachments/assets/a88314f5-86c1-45ad-8a86-36721547021f" />
 
 ---
