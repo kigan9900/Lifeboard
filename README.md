@@ -24,11 +24,16 @@ If I have something due soon, I can hit a few buttons and instantly open Classro
 
 ## Design
 
+### *The Keys are supposed to be white*
+
+<img width="1970" height="1025" alt="image" src="https://github.com/user-attachments/assets/152734f7-dc1c-4482-80cf-8e0648a494b4" />
+
 <img width="2066" height="1037" alt="image" src="https://github.com/user-attachments/assets/bba959f7-bb61-4406-838d-956fe2d76d85" />
+
 <img width="1603" height="784" alt="image" src="https://github.com/user-attachments/assets/ab8c4d1d-4d04-4b93-962f-018315203cea" />
 
 
-Turn the encoder to switch presets. Press a button to launch whatever you assigned.
+#### Turn the encoder to switch presets. Press a button to launch whatever you assigned.
 
 
 ---
