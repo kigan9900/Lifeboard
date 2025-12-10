@@ -81,4 +81,4 @@ This is a **surprise** for you to find once you make it, but there is a mascot a
 - 1× OLED_128x32 — OLED_128x32
 - 2× 4.7 kΩ — R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal
 - 1× XIAO-RP2040-SMD — XIAO-RP2040-DIP
-- 4× Mounting Screws — M5x15mm
+- 4× Mounting Screws — M3x16mm
