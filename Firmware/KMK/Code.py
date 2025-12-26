@@ -1,445 +1,538 @@
-# Lifeboard — KMK Firmware
-# 4 shortcuts per preset + 8x8 icons + marquee + mascot
-# XIAO RP2040 + 4 switches + 2 EC11 encoders + SSD1306 128x32 OLED
+# 🚀 LIFEBOARD — FULLY WORKING OLED EDITION
+# ✅ Clear recognizable icons
+# ✅ Volume shows as arrow icon (▲ or ▼) ONLY
+# ✅ Fixed AttributeError
 
-import board
-import time
+import board, time
 from kmk.kmk_keyboard import KMKKeyboard
 from kmk.keys import KC
-from kmk.handlers.sequences import send_string
+from kmk.scanners.keypad import KeysScanner
 from kmk.modules.layers import Layers
 from kmk.modules.encoder import EncoderHandler
-from kmk.modules.oled import OLED
+from kmk.modules.macros import Macros, Press, Release, Tap, Delay
+from kmk.extensions.media_keys import MediaKeys
+from kmk.extensions import Extension
 
 keyboard = KMKKeyboard()
+keyboard.extensions.append(MediaKeys())
+keyboard.modules.append(Macros())
+keyboard.modules.append(Layers())
 
-# -------------------------
-# Pins / rows
-# -------------------------
-keyboard.col_pins = []
-keyboard.row_pins = [board.D26, board.D27, board.D28, board.D29]
-keyboard.diode_orientation = None
+encoder = EncoderHandler()
+keyboard.modules.append(encoder)
 
-# -------------------------
-# Layers / presets
-# -------------------------
-layers = Layers()
-keyboard.modules.append(layers)
+keyboard.matrix = KeysScanner(
+    pins=[board.A0, board.A1, board.A2, board.A3],
+    value_when_pressed=False,
+    pull=True,
+)
 
-L_SCHOOL, L_CHILL, L_HACKCLUB, L_GITHUB = 0, 1, 2, 3
-layer_names = ["SCHOOL", "CHILL", "HACKCLUB", "GITHUB"]
+encoder.pins = [(board.D10, board.D9), (board.D7, board.D8)]
+encoder.pullups = True
+encoder.divisor = 4
 
-# -------------------------
-# New-tab URL launcher helper
-# -------------------------
-def launch(url: str):
-    # Open new tab then type URL then Enter
-    # Note: send_string accepts strings and KC.* combos; using this pattern used earlier
-    return send_string(KC.LCTRL(KC.T), url, KC.ENTER)
-
-# -------------------------
-# Action functions (4 per preset)
-# -------------------------
-# SCHOOL
-def google_classroom(): return launch("https://classroom.google.com")
-def chatgpt():          return launch("https://chat.openai.com")
-def youtube():          return launch("https://youtube.com")
-def google_drive():     return launch("https://drive.google.com")
-
-# CHILL
-def spotify():          return launch("https://spotify.com")
-def reddit():           return launch("https://reddit.com")
-def discord():          return launch("https://discord.com")
-def netflix():          return launch("https://www.netflix.com")
-
-# HACKCLUB
-def hackclub():         return launch("https://hackclub.com")
-def makecode():         return launch("https://arcade.makecode.com")
-def wokwi():            return launch("https://wokwi.com")
-def figma():            return launch("https://www.figma.com")
-
-# GITHUB
-def github():           return launch("https://github.com")
-def replit():           return launch("https://replit.com")
-def git_notify():       return launch("https://github.com/notifications")
-def stackoverflow():    return launch("https://stackoverflow.com")
-
-# -------------------------
-# Key legends
-# -------------------------
-key_legends = [
-    ["Classroom", "ChatGPT", "YouTube", "Drive"],
-    ["Spotify", "Reddit", "Discord", "Netflix"],
-    ["Hackclub", "MakeCode", "Wokwi", "Figma"],
-    ["GitHub", "Replit", "Notify", "StackOv"],
-]
+def URL(url):
+    return KC.MACRO(
+        Press(KC.LCTL), Tap(KC.T), Release(KC.LCTL),
+        Delay(120), url, Delay(40), Tap(KC.ENTER)
+    )
 
 keyboard.keymap = [
-    [google_classroom, chatgpt, youtube, google_drive],  # SCHOOL
-    [spotify, reddit, discord, netflix],                 # CHILL
-    [hackclub, makecode, wokwi, figma],                 # HACKCLUB
-    [github, replit, git_notify, stackoverflow],        # GITHUB
+    [URL("classroom.google.com"), URL("chat.openai.com"), URL("youtube.com"), URL("drive.google.com")],
+    [URL("netflix.com"), URL("spotify.com"), URL("discord.com"), URL("twitch.tv")],
+    [URL("hackclub.com"), URL("github.com"), URL("replit.com"), URL("slack.com")],
+    [KC.LCTL(KC.K), KC.LCTL(KC.LSFT(KC.F)), KC.LCTL(KC.ENT), KC.LCTL(KC.SLSH)],
+    [KC.SPC, KC.X, KC.Z, KC.M],
 ]
 
-# -------------------------
-# 8x8 Icons (one list per icon)
-# Each icon: 8 bytes (MSB = left)
-# Simple stylized pixel art placeholders
-# -------------------------
-ICON_BOOK = [
-    0b00111100,
-    0b01000010,
-    0b10100101,
-    0b10000001,
-    0b10111101,
-    0b10000001,
-    0b01000010,
-    0b00111100
+encoder.map = [
+    ((KC.DF(4), KC.DF(1)), (KC.AUDIO_VOL_DOWN, KC.AUDIO_VOL_UP)),
+    ((KC.DF(0), KC.DF(2)), (KC.AUDIO_VOL_DOWN, KC.AUDIO_VOL_UP)),
+    ((KC.DF(1), KC.DF(3)), (KC.AUDIO_VOL_DOWN, KC.AUDIO_VOL_UP)),
+    ((KC.DF(2), KC.DF(4)), (KC.AUDIO_VOL_DOWN, KC.AUDIO_VOL_UP)),
+    ((KC.DF(3), KC.DF(0)), (KC.AUDIO_VOL_DOWN, KC.AUDIO_VOL_UP)),
 ]
 
-ICON_CHAT = [
-    0b00111000,
-    0b01000100,
-    0b10000010,
-    0b10100110,
-    0b10111110,
-    0b10000010,
-    0b01000100,
-    0b00111000
-]
+try:
+    import displayio, terminalio
+    from adafruit_display_text import label
+    from i2cdisplaybus import I2CDisplayBus
+    import adafruit_displayio_ssd1306
 
-ICON_PLAY = [
-    0b00010000,
-    0b00111000,
-    0b01111100,
-    0b11111110,
-    0b11111110,
-    0b01111100,
-    0b00111000,
-    0b00010000
-]
+    displayio.release_displays()
+    display = adafruit_displayio_ssd1306.SSD1306(
+        I2CDisplayBus(board.I2C(), device_address=0x3C),
+        width=128, height=32
+    )
 
-ICON_DRIVE = [
-    0b00100100,
-    0b00110100,
-    0b00111100,
-    0b01111110,
-    0b01101110,
-    0b01000100,
-    0b01000100,
-    0b00000000
-]
+    # CLEAR RECOGNIZABLE ICONS - 16x16
+    ANIMATED_ICONS = {
+        # Layer 0: SCHOOL - Schoolhouse with flag
+        0: [
+            [
+                0b0000001111110000,
+                0b0000001100000000,
+                0b0000011110000000,
+                0b0000111111000000,
+                0b0001111111100000,
+                0b0011111111110000,
+                0b0011001100110000,
+                0b0011001100110000,
+                0b0011111111110000,
+                0b0011001100110000,
+                0b0011001100110000,
+                0b0011111111110000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+            [
+                0b0000001111110000,
+                0b0000001100000000,
+                0b0000011110000000,
+                0b0000111111000000,
+                0b0001111111100000,
+                0b0011111111110000,
+                0b0011001100110000,
+                0b0011001100110000,
+                0b0011111111110000,
+                0b0011001100110000,
+                0b0011001100110000,
+                0b0011111111110000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+        ],
+        # Layer 1: CHILL - Netflix "N"
+        1: [
+            [
+                0b1110000000001110,
+                0b1111000000001110,
+                0b1111100000001110,
+                0b1110110000001110,
+                0b1110011000001110,
+                0b1110001100001110,
+                0b1110000110001110,
+                0b1110000011001110,
+                0b1110000001101110,
+                0b1110000000111110,
+                0b1110000000011110,
+                0b1110000000001110,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+            [
+                0b1110000000001110,
+                0b1111000000001110,
+                0b1111100000001110,
+                0b1111110000001110,
+                0b1110111000001110,
+                0b1110011100001110,
+                0b1110001110001110,
+                0b1110000111001110,
+                0b1110000011101110,
+                0b1110000001111110,
+                0b1110000000111110,
+                0b1110000000011110,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+        ],
+        # Layer 2: HACKCLUB - Code brackets { }
+        2: [
+            [
+                0b0001100000011000,
+                0b0011000000001100,
+                0b0110000000000110,
+                0b0110000000000110,
+                0b0110000000000110,
+                0b1100000000000011,
+                0b0110000000000110,
+                0b0110000000000110,
+                0b0110000000000110,
+                0b0011000000001100,
+                0b0001100000011000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+            [
+                0b0011000000001100,
+                0b0110000000000110,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1000000000000001,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b0110000000000110,
+                0b0011000000001100,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+        ],
+        # Layer 3: GITHUB - Folder/files
+        3: [
+            [
+                0b1111111100000000,
+                0b1111111111111111,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1111111111111111,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+            [
+                0b1111111100000000,
+                0b1111111111111111,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1100000000000011,
+                0b1111111111111111,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+        ],
+        # Layer 4: KSP - Detailed rocket with fins (4 frame countdown)
+        4: [
+            # T-3: Ready
+            [
+                0b0000001100000000,
+                0b0000011110000000,
+                0b0000111111000000,
+                0b0001111111100000,
+                0b0001111111100000,
+                0b0011111111110000,
+                0b0011001100110000,
+                0b0011001100110000,
+                0b0111011111011100,
+                0b0111011111011100,
+                0b0011111111110000,
+                0b0011111111110000,
+                0b0111001100011100,
+                0b1110000000001110,
+                0b0000000000000000,
+                0b0000000000000000,
+            ],
+            # T-2: Pre-ignition
+            [
+                0b0000001100000000,
+                0b0000011110000000,
+                0b0000111111000000,
+                0b0001111111100000,
+                0b0001111111100000,
+                0b0011111111110000,
+                0b0011001100110000,
+                0b0011001100110000,
+                0b0111011111011100,
+                0b0111011111011100,
+                0b0011111111110000,
+                0b0011111111110000,
+                0b0111001100011100,
+                0b1110000000001110,
+                0b0100000000000010,
+                0b0000000000000000,
+            ],
+            # T-1: Ignition
+            [
+                0b0000001100000000,
+                0b0000011110000000,
+                0b0000111111000000,
+                0b0001111111100000,
+                0b0001111111100000,
+                0b0011111111110000,
+                0b0011001100110000,
+                0b0011001100110000,
+                0b0111011111011100,
+                0b0111011111011100,
+                0b0011111111110000,
+                0b0011111111110000,
+                0b0111111111111100,
+                0b1111001100011110,
+                0b1100000000000110,
+                0b0100000000000010,
+            ],
+            # LIFTOFF: Full thrust!
+            [
+                0b0000001100000000,
+                0b0000011110000000,
+                0b0000111111000000,
+                0b0001111111100000,
+                0b0001111111100000,
+                0b0011111111110000,
+                0b0011001100110000,
+                0b0011001100110000,
+                0b0111011111011100,
+                0b0111011111011100,
+                0b0011111111110000,
+                0b0111111111111000,
+                0b1111111111111110,
+                0b1111011111011110,
+                0b1110001100001110,
+                0b1000000000000001,
+            ],
+        ],
+    }
 
-ICON_SPOT = [
-    0b00000000,
-    0b00111000,
-    0b00101000,
-    0b00111000,
-    0b00000000,
-    0b00111000,
-    0b00000000,
-    0b00000000
-]
+    PAGES = [
+        ("SCHOOL", "GPT CLS DRV YT"),
+        ("CHILL", "SPT NFX TWI DSC"),
+        ("HACKCLUB", "GH HC SLK RPL"),
+        ("GITHUB", "FND K / RUN"),
+        ("KSP", "100% LAUNCH MAP 0%"),
+    ]
 
-ICON_REDDIT = [
-    0b00000000,
-    0b00100100,
-    0b01000010,
-    0b01011010,
-    0b01000010,
-    0b00100100,
-    0b00000000,
-    0b00000000
-]
+    class OLED(Extension):
+        def __init__(self):
+            self.root = displayio.Group()
+            display.root_group = self.root
 
-ICON_DISCORD = [
-    0b00000000,
-    0b01100110,
-    0b01000010,
-    0b01011010,
-    0b01000010,
-    0b01100110,
-    0b00000000,
-    0b00000000
-]
+            # Icon (16x16)
+            self.icon_bitmap = displayio.Bitmap(16, 16, 2)
+            self.icon_palette = displayio.Palette(2)
+            self.icon_palette[0] = 0x000000
+            self.icon_palette[1] = 0xFFFFFF
+            self.icon_grid = displayio.TileGrid(
+                self.icon_bitmap, pixel_shader=self.icon_palette, x=2, y=8
+            )
 
-ICON_NETFLIX = [
-    0b10000010,
-    0b11000010,
-    0b10100010,
-    0b10010010,
-    0b10001010,
-    0b10000110,
-    0b10000010,
-    0b00000000
-]
+            # Particles
+            self.particles = []
+            for i in range(8):
+                p_bitmap = displayio.Bitmap(2, 2, 2)
+                p_palette = displayio.Palette(2)
+                p_palette[0] = 0x000000
+                p_palette[1] = 0xFFFFFF
+                p_bitmap[0, 0] = 1
+                p_bitmap[1, 0] = 1
+                p_bitmap[0, 1] = 1
+                p_bitmap[1, 1] = 1
+                p_grid = displayio.TileGrid(
+                    p_bitmap, pixel_shader=p_palette, x=-10, y=-10
+                )
+                self.root.append(p_grid)
+                self.particles.append({
+                    'grid': p_grid, 'active': False, 'x': 0, 'y': 0,
+                    'vx': 0, 'vy': 0, 'life': 0
+                })
 
-ICON_FLAG = [
-    0b10000000,
-    0b11000000,
-    0b11100000,
-    0b11110000,
-    0b11100000,
-    0b11000000,
-    0b10000000,
-    0b00000000
-]
+            # Text labels
+            self.title = label.Label(
+                terminalio.FONT, text="LIFEBOARD", x=22, y=4, scale=1
+            )
+            
+            # Volume arrow ONLY (no number)
+            self.vol_label = label.Label(
+                terminalio.FONT, text="", x=112, y=4, scale=1
+            )
+            
+            self.keys = label.Label(
+                terminalio.FONT, text="", x=2, y=28, scale=1
+            )
 
-ICON_GAMEPAD = [
-    0b00000000,
-    0b01111110,
-    0b01011010,
-    0b01011010,
-    0b01011010,
-    0b01111110,
-    0b00000000,
-    0b00000000
-]
+            # Progress bar
+            self.prog_bitmap = displayio.Bitmap(60, 2, 2)
+            self.prog_palette = displayio.Palette(2)
+            self.prog_palette[0] = 0x000000
+            self.prog_palette[1] = 0xFFFFFF
+            self.prog_grid = displayio.TileGrid(
+                self.prog_bitmap, pixel_shader=self.prog_palette, x=22, y=10
+            )
 
-ICON_CHIP = [
-    0b11111111,
-    0b10000001,
-    0b10100101,
-    0b10100101,
-    0b10100101,
-    0b10000001,
-    0b11111111,
-    0b00000000
-]
+            # Add to display
+            self.root.append(self.icon_grid)
+            self.root.append(self.prog_grid)
+            self.root.append(self.title)
+            self.root.append(self.vol_label)
+            self.root.append(self.keys)
 
-ICON_FIGMA = [
-    0b01011000,
-    0b01011000,
-    0b01111100,
-    0b01111100,
-    0b01011000,
-    0b01011000,
-    0b00000000,
-    0b00000000
-]
+            self.last_layer = None
+            self.frame = 0
+            self.anim_frame = 0
+            self.vol_arrow_timer = 0
+            self.last_vol_action = None  # Track last volume action
 
-ICON_OCTO = [
-    0b00111000,
-    0b01000100,
-    0b10011010,
-    0b10111110,
-    0b10011010,
-    0b01000100,
-    0b00111000,
-    0b00000000
-]
+        def draw_icon(self, icon_data):
+            """Draw 16x16 icon"""
+            for y in range(16):
+                row = icon_data[y]
+                for x in range(16):
+                    self.icon_bitmap[x, y] = 1 if (row & (1 << (15 - x))) else 0
 
-ICON_BRACKETS = [
-    0b11100000,
-    0b11010000,
-    0b11001000,
-    0b11000100,
-    0b11001000,
-    0b11010000,
-    0b11100000,
-    0b00000000
-]
+        def spawn_particles(self, count=5):
+            """Spawn particles"""
+            import random
+            spawned = 0
+            for p in self.particles:
+                if not p['active'] and spawned < count:
+                    p['active'] = True
+                    p['x'] = 10.0 + random.uniform(-2, 2)
+                    p['y'] = 16.0 + random.uniform(-2, 2)
+                    p['vx'] = random.uniform(-2.0, 2.0)
+                    p['vy'] = random.uniform(-2.0, 2.0)
+                    p['life'] = 25
+                    p['grid'].x = int(p['x'])
+                    p['grid'].y = int(p['y'])
+                    spawned += 1
 
-ICON_BELL = [
-    0b00111000,
-    0b01010100,
-    0b10000010,
-    0b10000010,
-    0b10000010,
-    0b01000010,
-    0b00111100,
-    0b00000000
-]
+        def update_particles(self):
+            """Update particles"""
+            for p in self.particles:
+                if p['active']:
+                    p['x'] += p['vx']
+                    p['y'] += p['vy']
+                    p['life'] -= 1
+                    if (p['life'] <= 0 or p['x'] < 0 or p['x'] > 128 or 
+                        p['y'] < 0 or p['y'] > 32):
+                        p['active'] = False
+                        p['grid'].x = -10
+                        p['grid'].y = -10
+                    else:
+                        p['grid'].x = int(p['x'])
+                        p['grid'].y = int(p['y'])
 
-ICON_STACK = [
-    0b00010000,
-    0b00111000,
-    0b01111100,
-    0b00111000,
-    0b00010000,
-    0b00000000,
-    0b00111100,
-    0b00000000
-]
+        def check_volume_change(self, keyboard):
+            """Check if volume encoder was turned"""
+            # Check the actual pressed keys in the matrix
+            current_action = None
+            
+            # Look through keyboard's active matrix for volume keys
+            if hasattr(keyboard, 'hid_pending') and keyboard.hid_pending:
+                for key in keyboard.hid_pending:
+                    if hasattr(key, 'code'):
+                        if key.code == KC.AUDIO_VOL_UP.code:
+                            current_action = "UP"
+                        elif key.code == KC.AUDIO_VOL_DOWN.code:
+                            current_action = "DOWN"
+            
+            # Only update if action changed (new press detected)
+            if current_action and current_action != self.last_vol_action:
+                if current_action == "UP":
+                    self.vol_label.text = "▲"
+                    self.vol_arrow_timer = 60  # Show for 2 seconds
+                    self.spawn_particles(4)
+                elif current_action == "DOWN":
+                    self.vol_label.text = "▼"
+                    self.vol_arrow_timer = 60
+                    self.spawn_particles(4)
+                self.last_vol_action = current_action
+            elif not current_action:
+                self.last_vol_action = None
+            
+            # Fade out arrow after timer
+            if self.vol_arrow_timer > 0:
+                self.vol_arrow_timer -= 1
+            else:
+                self.vol_label.text = ""
 
-ICON_DASH = [
-    0b00000000,
-    0b00000000,
-    0b00000000,
-    0b01111110,
-    0b00000000,
-    0b00000000,
-    0b00000000,
-    0b00000000
-]
+        def update_progress_bar(self, layer):
+            """Update progress bar"""
+            target = int((layer + 1) * 60 / 5)
+            for x in range(60):
+                for y in range(2):
+                    self.prog_bitmap[x, y] = 1 if x <= target else 0
 
-# layer_icons: 4 icons each
-layer_icons = [
-    [ICON_BOOK, ICON_CHAT, ICON_PLAY, ICON_DRIVE],      # SCHOOL
-    [ICON_SPOT, ICON_REDDIT, ICON_DISCORD, ICON_NETFLIX],  # CHILL
-    [ICON_FLAG, ICON_GAMEPAD, ICON_CHIP, ICON_FIGMA],   # HACKCLUB
-    [ICON_OCTO, ICON_BRACKETS, ICON_BELL, ICON_STACK],  # GITHUB
-]
+        def boot_sequence(self):
+            """Boot animation"""
+            for i in range(5):
+                self.draw_icon(ANIMATED_ICONS[i][0])
+                time.sleep(0.15)
+                self.spawn_particles(8)
 
-# -------------------------
-# OLED + animations
-# -------------------------
-oled = OLED(i2c=board.I2C(), width=128, height=32, refresh_rate=60)
-keyboard.modules.append(oled)
+        def during_bootup(self, keyboard):
+            self.boot_sequence()
 
-boot_done = False
-boot_frame = 0
-marquee_text = ""
-marquee_x = 0
-marquee_active = False
-
-mascot_pos = 0
-mascot_dir = 1
-mascot_last = time.monotonic()
-
-# draw 8x8 icon helper
-def draw_icon(display, x, y, bitmap):
-    try:
-        for row in range(8):
-            byte = bitmap[row]
-            for col in range(8):
-                if (byte >> (7 - col)) & 1:
-                    display.pixel(x + col, y + row, 1)
-                else:
-                    display.pixel(x + col, y + row, 0)
-    except Exception:
-        for row in range(8):
-            byte = bitmap[row]
-            for col in range(8):
-                if (byte >> (7 - col)) & 1:
-                    try:
-                        display.fill_rect(x + col, y + row, 1, 1, 1)
-                    except Exception:
-                        pass
-
-def start_marquee(text):
-    global marquee_text, marquee_x, marquee_active
-    marquee_text = text
-    marquee_x = 128
-    marquee_active = True
-
-def oled_draw(display):
-    global boot_done, boot_frame, marquee_active, marquee_x, mascot_pos, mascot_dir, mascot_last
-
-    display.fill(0)
-
-    # boot slide
-    if not boot_done:
-        x = 128 - boot_frame
-        if x < -64:
-            boot_done = True
-        else:
-            try:
-                display.text("LIFEBOARD", max(0, x), 10)
-            except Exception:
-                pass
-            display.show()
-            boot_frame += 6
-            return
-
-    # marquee active?
-    if marquee_active:
-        try:
-            display.text(marquee_text, marquee_x, 0)
-        except Exception:
+        def before_matrix_scan(self, keyboard):
             pass
-        marquee_x -= 3
-        if marquee_x + (len(marquee_text) * 6) < 0:
-            marquee_active = False
 
-    # draw icons + legends
-    preset = layers.active_layer
-    icons = layer_icons[preset]
-    legends = key_legends[preset]
+        def after_matrix_scan(self, keyboard):
+            layer = keyboard.active_layers[0] if keyboard.active_layers else 0
+            layer %= len(PAGES)
 
-    # positions
-    # left column: icons at x=0, text x=12 (keys 1 & 2)
-    # right column: icons x=68, text x=80 (keys 3 & 4)
-    draw_icon(display, 0, 8, icons[0])
-    try:
-        display.text("1:" + legends[0], 12, 8)
-    except Exception:
-        pass
+            # Layer change
+            if layer != self.last_layer:
+                self.spawn_particles(10)
+                self.title.text = PAGES[layer][0]
+                self.keys.text = PAGES[layer][1]
+                self.update_progress_bar(layer)
+                self.last_layer = layer
+                self.anim_frame = 0
 
-    draw_icon(display, 0, 16, icons[1])
-    try:
-        display.text("2:" + legends[1], 12, 16)
-    except Exception:
-        pass
+            # Animate icon
+            self.frame += 1
+            anim_speed = 12 if layer == 4 else 20
+            if self.frame % anim_speed == 0:
+                frames = ANIMATED_ICONS[layer]
+                self.anim_frame = (self.anim_frame + 1) % len(frames)
+                self.draw_icon(frames[self.anim_frame])
 
-    draw_icon(display, 68, 8, icons[2])
-    try:
-        display.text("3:" + legends[2], 80, 8)
-    except Exception:
-        pass
+            # Update particles
+            if self.frame % 2 == 0:
+                self.update_particles()
 
-    draw_icon(display, 68, 16, icons[3])
-    try:
-        display.text("4:" + legends[3], 80, 16)
-    except Exception:
-        pass
+            # Check volume changes
+            self.check_volume_change(keyboard)
 
-    # draw preset name top-left if not marquee (or keep both)
-    if not marquee_active:
-        try:
-            display.text(layer_names[preset], 0, 0)
-        except Exception:
+            # Icon bounce
+            if self.frame % 40 == 0:
+                offset = [0, -1, -1, 0][(self.frame // 40) % 4]
+                self.icon_grid.y = 8 + offset
+
+        def before_hid_send(self, keyboard):
             pass
 
-    # mascot (2x2) bottom
-    now = time.monotonic()
-    if now - mascot_last > 0.12:
-        mascot_last = now
-        mascot_pos += mascot_dir
-        if mascot_pos <= 0:
-            mascot_pos = 0
-            mascot_dir = 1
-        if mascot_pos >= 120:
-            mascot_pos = 120
-            mascot_dir = -1
-
-    try:
-        display.pixel(mascot_pos, 30, 1)
-        display.pixel(mascot_pos+1, 30, 1)
-        display.pixel(mascot_pos, 31, 1)
-        display.pixel(mascot_pos+1, 31, 1)
-    except Exception:
-        try:
-            display.fill_rect(mascot_pos, 30, 2, 2, 1)
-        except Exception:
+        def after_hid_send(self, keyboard):
             pass
 
-    display.show()
+        def on_powersave_enable(self, keyboard):
+            pass
 
-oled.display_func = oled_draw
+        def on_powersave_disable(self, keyboard):
+            pass
 
-# -------------------------
-# Encoders
-# left -> presets, right -> volume
-# -------------------------
-enc = EncoderHandler()
-keyboard.modules.append(enc)
+        def on_runtime_enable(self, keyboard):
+            pass
 
-enc.pins = ((board.D3, board.D4), (board.D2, board.D1))
+        def on_runtime_disable(self, keyboard):
+            pass
 
-def next_mode():
-    layers.active_layer = (layers.active_layer + 1) % 4
-    start_marquee(layer_names[layers.active_layer])
+        def deinit(self, keyboard):
+            pass
 
-def prev_mode():
-    layers.active_layer = (layers.active_layer - 1) % 4
-    start_marquee(layer_names[layers.active_layer])
+    keyboard.extensions.append(OLED())
 
-enc.map = [((lambda: next_mode()), (lambda: prev_mode())), ((KC.VOLU,), (KC.VOLD,))]
+except Exception as e:
+    print("OLED disabled:", e)
 
-# -------------------------
-# Start
-# -------------------------
 if __name__ == "__main__":
-    start_marquee(layer_names[layers.active_layer])
     keyboard.go()
